@@ -7,4 +7,4 @@ brings a retro, terminal-based spinning 3D globe right to your command line and 
 * **Zero Dependencies:** Runs natively without heavy external libraries.
 * **Highly Customizable:** Easily adjust rotation speed, globe sizing, and character density.
 * **Low Overhead:** Engineered for high frame rates with minimal CPU footprint.
-* ##View Live Site: https://bennymusonda.github.io/asciiart/
+* ##View Live Site: https://bennymusonda.github.io/asciiworldmap/
