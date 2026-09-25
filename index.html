@@ -1,55 +1,46 @@
 <!DOCTYPE html>
-<!-- This tells the browser we are using modern HTML5 -->
 <html lang="en">
 <head>
-  <!-- Character encoding so all symbols display correctly -->
   <meta charset="UTF-8">
-  <!-- Makes the page behave nicely on phones and small screens -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Spinning ASCII World Map</title>
 
   <style>
-    /* ---------- CSS: controls how everything LOOKS ---------- */
-
-    /* Reset default spacing the browser adds to every page */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
-    /* Style the whole page: dark "space" background, centered content */
     html, body {
-      height: 100%;                     /* full height so centering works */
-      background: #05070d;              /* near-black background, like space */
-      color: #7CFC90;                   /* default text color: terminal green */
-      font-family: monospace;           /* monospace = every character same width, needed for ASCII art */
-      display: flex;                    /* flexbox lets us center things easily */
-      flex-direction: column;           /* stack items vertically */
-      align-items: center;              /* center horizontally */
-      justify-content: center;          /* center vertically */
-      gap: 16px;                        /* space between title, map, and footer text */
+      height: 100%;                  
+      background: #05070d;             
+      color: #7CFC90;                   
+      font-family: monospace;           
+      display: flex;                    
+      flex-direction: column;          
+      align-items: center;              
+      justify-content: center;          
+      gap: 16px;                       
     }
 
-    /* The little title above the globe */
+  
     h1 {
       font-size: 1.1rem;
-      letter-spacing: 2px;              /* spread the letters out a bit, looks more "terminal" */
-      color: #9be7ff;                   /* light blue, like a screen glow */
+      letter-spacing: 2px;            
+      color: #9be7ff;                  
       text-align: center;
     }
 
-    /* The <pre> tag preserves spaces and line breaks exactly as we write them,
-       which is essential for ASCII art to line up correctly */
     #globe {
-      font-size: 12px;                  /* small font so the whole map fits on screen */
-      line-height: 1.0;                 /* tight line spacing so rows stay close together */
-      white-space: pre;                 /* never wrap text, keep our ASCII grid intact */
-      text-shadow: 0 0 6px #4dff88;     /* soft glow effect, like an old CRT monitor */
-      user-select: none;                /* stop users from accidentally highlighting the art */
+      font-size: 12px;                  
+      line-height: 1.0;                 
+      white-space: pre;                
+      text-shadow: 0 0 6px #4dff88;     
+      user-select: none;              
     }
 
-    /* Small helper text under the globe */
+  
     p.info {
       max-width: 520px;
       font-size: 0.8rem;
@@ -58,31 +49,27 @@
       padding: 0 16px;
     }
 
-    /* Simple button to pause/resume the spinning */
+    
     button {
       font-family: monospace;
       background: transparent;
       border: 1px solid #4dff88;
       color: #4dff88;
       padding: 6px 14px;
-      cursor: pointer;                  /* show a "clickable" hand cursor */
+      cursor: pointer;                  
       border-radius: 4px;
     }
     button:hover {
-      background: #4dff8822;            /* faint green highlight on hover */
+      background: #4dff8822;           
     }
   </style>
 </head>
 
 <body>
 
-  <!-- Page heading -->
-  <h1> SPINNING ASCII WORLD MAP</h1>
-
-  <!-- This <pre> block is where we will print each animation frame of the globe -->
+  <h1> SPINNING ASCII WORLD MAP</h1> 
   <pre id="globe"></pre>
-
-  <!-- Button lets the user pause and resume the animation -->
+  
   <button id="toggleBtn">Pause</button>
 
   <p class="info">
