@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<!-- This tells the browser we are using modern HTML5 -->
+<html lang="en">
+<head>
+  <!-- Character encoding so all symbols display correctly -->
+  <meta charset="UTF-8">
+  <!-- Makes the page behave nicely on phones and small screens -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Spinning ASCII World Map</title>
+
+  <style>
+    /* ---------- CSS: controls how everything LOOKS ---------- */
+
+    /* Reset default spacing the browser adds to every page */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Style the whole page: dark "space" background, centered content */
+    html, body {
+      height: 100%;                     /* full height so centering works */
+      background: #05070d;              /* near-black background, like space */
+      color: #7CFC90;                   /* default text color: terminal green */
+      font-family: monospace;           /* monospace = every character same width, needed for ASCII art */
+      display: flex;                    /* flexbox lets us center things easily */
+      flex-direction: column;           /* stack items vertically */
+      align-items: center;              /* center horizontally */
+      justify-content: center;          /* center vertically */
+      gap: 16px;                        /* space between title, map, and footer text */
+    }
+
+    /* The little title above the globe */
+    h1 {
+      font-size: 1.1rem;
+      letter-spacing: 2px;              /* spread the letters out a bit, looks more "terminal" */
+      color: #9be7ff;                   /* light blue, like a screen glow */
+      text-align: center;
+    }
+
+    /* The <pre> tag preserves spaces and line breaks exactly as we write them,
+       which is essential for ASCII art to line up correctly */
+    #globe {
+      font-size: 12px;                  /* small font so the whole map fits on screen */
+      line-height: 1.0;                 /* tight line spacing so rows stay close together */
+      white-space: pre;                 /* never wrap text, keep our ASCII grid intact */
+      text-shadow: 0 0 6px #4dff88;     /* soft glow effect, like an old CRT monitor */
+      user-select: none;                /* stop users from accidentally highlighting the art */
+    }
+
+    /* Small helper text under the globe */
+    p.info {
+      max-width: 520px;
+      font-size: 0.8rem;
+      color: #7d8b99;
+      text-align: center;
+      padding: 0 16px;
+    }
+
+    /* Simple button to pause/resume the spinning */
+    button {
+      font-family: monospace;
+      background: transparent;
+      border: 1px solid #4dff88;
+      color: #4dff88;
+      padding: 6px 14px;
+      cursor: pointer;                  /* show a "clickable" hand cursor */
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #4dff8822;            /* faint green highlight on hover */
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Page heading -->
+  <h1> SPINNING ASCII WORLD MAP</h1>
+
+  <!-- This <pre> block is where we will print each animation frame of the globe -->
+  <pre id="globe"></pre>
+
+  <!-- Button lets the user pause and resume the animation -->
+  <button id="toggleBtn">Pause</button>
+
+  <p class="info">
+    This globe is just a block of text characters. Every frame, the code shifts
+    the map sideways by one column and wraps the edge around to the other side,
+    which tricks your eye into seeing a rotating sphere.
+  </p>
+
+  <script>
+    // ---------- JAVASCRIPT: controls the BEHAVIOR / ANIMATION ----------
+
+    // Step 1: Define our "world map" as a plain array of text strings.
+    // Each string is one row. '#' roughly represents land, '.' represents ocean.
+    // This is hand-drawn and simplified on purpose so the logic below stays easy to read.
+    const worldMap = [
+      "..............................................................................",
+      "..........####........................########........#####................",
+      "........##########....................#############...######................",
+      ".......############...................###############..######...............",
+      "........############..................##################......##............",
+      ".........###########...........................#############....##..........",
+      "..........##########............................############....####........",
+      "...........########.............................###########.....######.......",
+      "............#######..............................#########.......#####......",
+      ".............######...............................########........####......",
+      "..............#####................................#######........###.......",
+      "...............####.................................######........##........",
+      "................###..................................#####..................",
+      ".................##...................................####..................",
+      "..................#....................................###..................",
+      "...............................................................##...........",
+      "..........................................................########..........",
+      ".........................................................##########.........",
+      "........................................................############........",
+      ".......................................................##############.......",
+      "......................................................################......",
+      ".....................................................##################.....",
+      "..............................................................................",
+      "..............................................................................",
+    ];
+
+    // Step 2: Work out the width (number of columns) and height (number of rows)
+    // of the map, using the first row's length as our reference.
+    const mapWidth = worldMap[0].length;   // how many characters are in one row
+    const mapHeight = worldMap.length;     // how many rows the map has
+
+    // Step 3: Keep track of how far we have "spun" the globe so far.
+    // This number increases every frame and represents the rotation offset.
+    let offset = 0;
+
+    // Step 4: Grab references to the HTML elements we need to control.
+    const globeElement = document.getElementById("globe"); // the <pre> that shows the art
+    const toggleButton = document.getElementById("toggleBtn"); // the pause/resume button
+
+    // Step 5: This flag tells us whether the animation is currently running.
+    let isSpinning = true;
+
+    // Step 6: This function builds ONE frame of the animation and returns it as text.
+    function buildFrame() {
+      // We will collect each finished row of text into this array.
+      const outputRows = [];
+
+      // Loop over every row of the original map, one at a time.
+      for (let row = 0; row < mapHeight; row++) {
+        const originalRow = worldMap[row]; // the untouched text for this row
+        let shiftedRow = "";               // we will build the rotated version here
+
+        // Loop over every column position in that row.
+        for (let col = 0; col < mapWidth; col++) {
+          // Calculate which character from the ORIGINAL row should appear here,
+          // after shifting everything left by "offset" characters.
+          // The "% mapWidth" makes the index wrap back to 0 once it goes past the end,
+          // which is what creates the illusion of the map curving around a sphere.
+          const sourceIndex = (col + offset) % mapWidth;
+
+          // Read that character from the original row and add it to our new row.
+          shiftedRow += originalRow[sourceIndex];
+        }
+
+        // Add some simple left/right shading so the edges of the globe look
+        // slightly darker, like the curve of a sphere catching less light.
+        // We do this by picking a "dimmer" character near the left and right edges.
+        shiftedRow = applyEdgeShading(shiftedRow);
+
+        // Save the finished row of text.
+        outputRows.push(shiftedRow);
+      }
+
+      // Join all rows together with line breaks to form the full frame of text.
+      return outputRows.join("\n");
+    }
+
+    // Step 7: This function fades the left and right edges of a row to fake
+    // the roundness of a sphere (a simple visual trick, not real 3D math).
+    function applyEdgeShading(row) {
+      const chars = row.split("");        // turn the string into an array of characters
+      const edgeSize = 6;                 // how many characters wide the shaded edge is
+
+      for (let i = 0; i < edgeSize; i++) {
+        // Only replace '#' land characters, so we don't touch empty ocean dots.
+        if (chars[i] === "#") chars[i] = ":";                 // left edge, dimmer symbol
+        if (chars[mapWidth - 1 - i] === "#") chars[mapWidth - 1 - i] = ":"; // right edge
+      }
+
+      return chars.join("");              // turn the array back into a single string
+    }
+
+    // Step 8: This function draws one frame, then schedules the next one.
+    function animate() {
+      // Only keep animating if the user hasn't paused it.
+      if (isSpinning) {
+        globeElement.textContent = buildFrame(); // draw the current frame to the page
+        offset = (offset + 1) % mapWidth;        // move the rotation forward by 1 column
+      }
+
+      // Ask the browser to call this same function again before the next repaint.
+      // This gives a smooth, efficient animation loop.
+      requestAnimationFrame(loopWithDelay);
+    }
+
+    // Step 9: We slow the animation down on purpose, because a full-speed
+    // requestAnimationFrame loop (60 times per second) would spin too fast to read.
+    let lastFrameTime = 0;              // remembers when we last drew a frame
+    const frameDelay = 90;              // milliseconds to wait between frames (bigger = slower)
+
+    function loopWithDelay(currentTime) {
+      // Only draw a new frame if enough time has passed since the last one.
+      if (currentTime - lastFrameTime >= frameDelay) {
+        lastFrameTime = currentTime;    // reset the timer
+        animate();                      // draw the next frame
+      } else {
+        // Not enough time has passed yet, just wait for the next browser repaint.
+        requestAnimationFrame(loopWithDelay);
+      }
+    }
+
+    // Step 10: Let the pause/resume button flip the isSpinning flag.
+    toggleButton.addEventListener("click", function () {
+      isSpinning = !isSpinning;                              // flip true/false
+      toggleButton.textContent = isSpinning ? "Pause" : "Resume"; // update button label
+    });
+
+    // Step 11: Draw the very first frame immediately so the page isn't blank,
+    // then kick off the animation loop.
+    globeElement.textContent = buildFrame();
+    requestAnimationFrame(loopWithDelay);
+  </script>
+
+</body>
+</html>
