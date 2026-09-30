@@ -3,44 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Spinning ASCII World Map</title>
+  <title>Spinning ASCII World Map — 3D</title>
 
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      height: 100%;                  
-      background: #05070d;             
-      color: #7CFC90;                   
-      font-family: monospace;           
-      display: flex;                    
-      flex-direction: column;          
-      align-items: center;              
-      justify-content: center;          
-      gap: 16px;                       
+      height: 100%;
+      background: #05070d;
+      color: #7CFC90;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
     }
 
-  
     h1 {
       font-size: 1.1rem;
-      letter-spacing: 2px;            
-      color: #9be7ff;                  
+      letter-spacing: 2px;
+      color: #9be7ff;
       text-align: center;
     }
 
     #globe {
-      font-size: 12px;                  
-      line-height: 1.0;                 
-      white-space: pre;                
-      text-shadow: 0 0 6px #4dff88;     
-      user-select: none;              
+      font-size: 12px;
+      line-height: 1.0;
+      white-space: pre;
+      text-shadow: 0 0 6px #4dff88;
+      user-select: none;
     }
 
-  
     p.info {
       max-width: 520px;
       font-size: 0.8rem;
@@ -49,41 +43,37 @@
       padding: 0 16px;
     }
 
-    
     button {
       font-family: monospace;
       background: transparent;
       border: 1px solid #4dff88;
       color: #4dff88;
       padding: 6px 14px;
-      cursor: pointer;                  
+      cursor: pointer;
       border-radius: 4px;
     }
-    button:hover {
-      background: #4dff8822;           
-    }
+    button:hover { background: #4dff8822; }
   </style>
 </head>
 
 <body>
 
-  <h1> SPINNING ASCII WORLD MAP</h1> 
+  <h1> SPINNING ASCII WORLD MAP — 3D</h1>
+
   <pre id="globe"></pre>
-  
+
   <button id="toggleBtn">Pause</button>
 
   <p class="info">
-    This globe is just a block of text characters. Every frame, the code shifts
-    the map sideways by one column and wraps the edge around to the other side,
-    which tricks your eye into seeing a rotating sphere.
+    This is now a real spherical projection, not a scrolling strip: every
+    character is placed by mapping latitude/longitude onto a rotating sphere
+    and projecting the visible (front-facing) half onto the screen. Characters
+    near the rim get dimmer as the surface curves away from you, just like
+    the terminator on a real globe.
   </p>
 
   <script>
-    // ---------- JAVASCRIPT: controls the BEHAVIOR / ANIMATION ----------
-
-    // Step 1: Define our "world map" as a plain array of text strings.
-    // Each string is one row. '#' roughly represents land, '.' represents ocean.
-    // This is hand-drawn and simplified on purpose so the logic below stays easy to read.
+    // ---------- 1. Source texture: a lat/lon grid of land ('#') and ocean ('.') ----------
     const worldMap = [
       "..............................................................................",
       "..........####........................########........#####................",
@@ -110,111 +100,127 @@
       "..............................................................................",
       "..............................................................................",
     ];
+    const texWidth = worldMap[0].length;   // columns = longitude samples
+    const texHeight = worldMap.length;     // rows = latitude samples
 
-    // Step 2: Work out the width (number of columns) and height (number of rows)
-    // of the map, using the first row's length as our reference.
-    const mapWidth = worldMap[0].length;   // how many characters are in one row
-    const mapHeight = worldMap.length;     // how many rows the map has
+    // ---------- 2. Output grid geometry ----------
+    // R = sphere radius measured in "row units". Monospace characters are
+    // roughly twice as tall as they are wide, so we stretch the horizontal
+    // axis by `aspect` to make the projected sphere actually look round.
+    const R = 16;
+    const aspect = 2.15;
+    const rowHalf = R;
+    const colHalf = Math.round(R * aspect);
+    const H = rowHalf * 2 + 1;
+    const W = colHalf * 2 + 1;
 
-    // Step 3: Keep track of how far we have "spun" the globe so far.
-    // This number increases every frame and represents the rotation offset.
-    let offset = 0;
+    // Shading ramp for land, from facing-the-viewer (bright) to grazing-the-rim (dim)
+    const landRamp = ["#", "%", "+", ":", "."];
+    const oceanChar = ".";
 
-    // Step 4: Grab references to the HTML elements we need to control.
-    const globeElement = document.getElementById("globe"); // the <pre> that shows the art
-    const toggleButton = document.getElementById("toggleBtn"); // the pause/resume button
+    // ---------- 3. Static starfield behind/around the sphere (built once) ----------
+    const background = [];
+    for (let i = 0; i < H; i++) {
+      let rowStars = "";
+      for (let j = 0; j < W; j++) {
+        rowStars += Math.random() < 0.03 ? "." : " ";
+      }
+      background.push(rowStars);
+    }
 
-    // Step 5: This flag tells us whether the animation is currently running.
+    // ---------- 4. Build one frame of the rotating globe ----------
+    function buildFrame(theta) {
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+      const rows = [];
+
+      for (let i = 0; i < H; i++) {
+        const ny = (rowHalf - i) / rowHalf; // +1 at top (north pole) .. -1 at bottom
+        let line = "";
+
+        for (let j = 0; j < W; j++) {
+          const nx = (j - colHalf) / colHalf; // -1 .. +1 across the sphere's width
+          const d2 = nx * nx + ny * ny;
+
+          if (d2 > 1) {
+            // Outside the sphere: show the starfield
+            line += background[i][j];
+            continue;
+          }
+
+          // Front-facing sphere point as seen by the viewer
+          const nz = Math.sqrt(1 - d2);
+
+          // Un-rotate this viewed point to find where it originally sits on
+          // the texture, i.e. "undo" the current spin angle.
+          const xOrig = nx * cosT + nz * sinT;
+          const zOrig = -nx * sinT + nz * cosT;
+          const yOrig = ny;
+
+          // Convert 3D sphere coords -> latitude/longitude -> texture indices
+          const lat = Math.asin(Math.max(-1, Math.min(1, yOrig)));      // -pi/2 .. pi/2
+          const lon = Math.atan2(xOrig, zOrig);                        // -pi .. pi
+
+          let row = Math.floor((1 - (lat + Math.PI / 2) / Math.PI) * texHeight);
+          let col = Math.floor(((lon + Math.PI) / (2 * Math.PI)) * texWidth);
+          row = Math.max(0, Math.min(texHeight - 1, row));
+          col = Math.max(0, Math.min(texWidth - 1, col));
+
+          const isLand = worldMap[row][col] === "#";
+
+          if (isLand) {
+            // Pick a shading character based on how much this point faces us
+            let shade;
+            if (nz > 0.85) shade = 0;
+            else if (nz > 0.65) shade = 1;
+            else if (nz > 0.45) shade = 2;
+            else if (nz > 0.25) shade = 3;
+            else shade = 4;
+            line += landRamp[shade];
+          } else {
+            line += nz > 0.15 ? oceanChar : " "; // fade ocean out right at the rim
+          }
+        }
+        rows.push(line);
+      }
+      return rows.join("\n");
+    }
+
+    // ---------- 5. Animation loop (throttled, pausable) ----------
+    const globeElement = document.getElementById("globe");
+    const toggleButton = document.getElementById("toggleBtn");
+
+    let theta = 0;
+    const thetaStep = 0.07; // radians per frame
     let isSpinning = true;
 
-    // Step 6: This function builds ONE frame of the animation and returns it as text.
-    function buildFrame() {
-      // We will collect each finished row of text into this array.
-      const outputRows = [];
+    let lastFrameTime = 0;
+    const frameDelay = 90; // ms between frames
 
-      // Loop over every row of the original map, one at a time.
-      for (let row = 0; row < mapHeight; row++) {
-        const originalRow = worldMap[row]; // the untouched text for this row
-        let shiftedRow = "";               // we will build the rotated version here
-
-        // Loop over every column position in that row.
-        for (let col = 0; col < mapWidth; col++) {
-          // Calculate which character from the ORIGINAL row should appear here,
-          // after shifting everything left by "offset" characters.
-          // The "% mapWidth" makes the index wrap back to 0 once it goes past the end,
-          // which is what creates the illusion of the map curving around a sphere.
-          const sourceIndex = (col + offset) % mapWidth;
-
-          // Read that character from the original row and add it to our new row.
-          shiftedRow += originalRow[sourceIndex];
-        }
-
-        // Add some simple left/right shading so the edges of the globe look
-        // slightly darker, like the curve of a sphere catching less light.
-        // We do this by picking a "dimmer" character near the left and right edges.
-        shiftedRow = applyEdgeShading(shiftedRow);
-
-        // Save the finished row of text.
-        outputRows.push(shiftedRow);
-      }
-
-      // Join all rows together with line breaks to form the full frame of text.
-      return outputRows.join("\n");
-    }
-
-    // Step 7: This function fades the left and right edges of a row to fake
-    // the roundness of a sphere (a simple visual trick, not real 3D math).
-    function applyEdgeShading(row) {
-      const chars = row.split("");        // turn the string into an array of characters
-      const edgeSize = 6;                 // how many characters wide the shaded edge is
-
-      for (let i = 0; i < edgeSize; i++) {
-        // Only replace '#' land characters, so we don't touch empty ocean dots.
-        if (chars[i] === "#") chars[i] = ":";                 // left edge, dimmer symbol
-        if (chars[mapWidth - 1 - i] === "#") chars[mapWidth - 1 - i] = ":"; // right edge
-      }
-
-      return chars.join("");              // turn the array back into a single string
-    }
-
-    // Step 8: This function draws one frame, then schedules the next one.
     function animate() {
-      // Only keep animating if the user hasn't paused it.
       if (isSpinning) {
-        globeElement.textContent = buildFrame(); // draw the current frame to the page
-        offset = (offset + 1) % mapWidth;        // move the rotation forward by 1 column
+        globeElement.textContent = buildFrame(theta);
+        theta += thetaStep;
+        if (theta > Math.PI * 2) theta -= Math.PI * 2;
       }
-
-      // Ask the browser to call this same function again before the next repaint.
-      // This gives a smooth, efficient animation loop.
       requestAnimationFrame(loopWithDelay);
     }
 
-    // Step 9: We slow the animation down on purpose, because a full-speed
-    // requestAnimationFrame loop (60 times per second) would spin too fast to read.
-    let lastFrameTime = 0;              // remembers when we last drew a frame
-    const frameDelay = 90;              // milliseconds to wait between frames (bigger = slower)
-
     function loopWithDelay(currentTime) {
-      // Only draw a new frame if enough time has passed since the last one.
       if (currentTime - lastFrameTime >= frameDelay) {
-        lastFrameTime = currentTime;    // reset the timer
-        animate();                      // draw the next frame
+        lastFrameTime = currentTime;
+        animate();
       } else {
-        // Not enough time has passed yet, just wait for the next browser repaint.
         requestAnimationFrame(loopWithDelay);
       }
     }
 
-    // Step 10: Let the pause/resume button flip the isSpinning flag.
     toggleButton.addEventListener("click", function () {
-      isSpinning = !isSpinning;                              // flip true/false
-      toggleButton.textContent = isSpinning ? "Pause" : "Resume"; // update button label
+      isSpinning = !isSpinning;
+      toggleButton.textContent = isSpinning ? "Pause" : "Resume";
     });
 
-    // Step 11: Draw the very first frame immediately so the page isn't blank,
-    // then kick off the animation loop.
-    globeElement.textContent = buildFrame();
+    globeElement.textContent = buildFrame(theta);
     requestAnimationFrame(loopWithDelay);
   </script>
 
