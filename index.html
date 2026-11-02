@@ -1,228 +1,493 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Spinning ASCII World Map — 3D</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+<title>3D Earth Globe</title>
 
-    html, body {
-      height: 100%;
-      background: #05070d;
-      color: #7CFC90;
-      font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #020713;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+#container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+
+canvas {
+    display: block;
+}
+
+.header {
+    position: absolute;
+    top: 25px;
+    width: 100%;
+    text-align: center;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.header h1 {
+    color: #8cecff;
+    font-size: 25px;
+    letter-spacing: 4px;
+    text-shadow: 0 0 15px #00aaff;
+}
+
+.header p {
+    color: #8295aa;
+    font-size: 12px;
+    margin-top: 10px;
+    letter-spacing: 2px;
+}
+
+.info {
+    position: absolute;
+    bottom: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 3;
+}
+
+button {
+    background: rgba(0, 30, 55, 0.8);
+    color: #70eaff;
+    border: 1px solid #00bfff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 0 15px #008cff33;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #006c9c;
+    box-shadow: 0 0 20px #00bfff;
+}
+
+.hint {
+    position: absolute;
+    bottom: 100px;
+    width: 100%;
+    text-align: center;
+    color: #71869c;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+@media(max-width: 600px) {
+    .header h1 {
+        font-size: 18px;
+        letter-spacing: 2px;
     }
 
-    h1 {
-      font-size: 1.1rem;
-      letter-spacing: 2px;
-      color: #9be7ff;
-      text-align: center;
-    }
-
-    #globe {
-      font-size: 12px;
-      line-height: 1.0;
-      white-space: pre;
-      text-shadow: 0 0 6px #4dff88;
-      user-select: none;
-    }
-
-    p.info {
-      max-width: 520px;
-      font-size: 0.8rem;
-      color: #7d8b99;
-      text-align: center;
-      padding: 0 16px;
+    .header p {
+        font-size: 10px;
     }
 
     button {
-      font-family: monospace;
-      background: transparent;
-      border: 1px solid #4dff88;
-      color: #4dff88;
-      padding: 6px 14px;
-      cursor: pointer;
-      border-radius: 4px;
+        padding: 10px 18px;
+        font-size: 12px;
     }
-    button:hover { background: #4dff8822; }
-  </style>
+
+    .hint {
+        bottom: 90px;
+    }
+}
+</style>
 </head>
 
 <body>
 
-  <h1> SPINNING ASCII WORLD MAP — 3D</h1>
+<div id="container">
 
-  <pre id="globe"></pre>
+    <div class="header">
+        <h1>3D WORLD GLOBE</h1>
+        <p>EXPLORE OUR PLANET</p>
+    </div>
 
-  <button id="toggleBtn">Pause</button>
+    <div class="hint">
+        DRAG TO ROTATE • SCROLL TO ZOOM
+    </div>
 
-  <p class="info">
-    This is now a real spherical projection, not a scrolling strip: every
-    character is placed by mapping latitude/longitude onto a rotating sphere
-    and projecting the visible (front-facing) half onto the screen. Characters
-    near the rim get dimmer as the surface curves away from you, just like
-    the terminator on a real globe.
-  </p>
+    <div class="info">
+        <button id="pauseBtn">Pause Rotation</button>
+        <button id="resetBtn">Reset View</button>
+    </div>
 
-  <script>
-    // ---------- 1. Source texture: a lat/lon grid of land ('#') and ocean ('.') ----------
-    const worldMap = [
-      "..............................................................................",
-      "..........####........................########........#####................",
-      "........##########....................#############...######................",
-      ".......############...................###############..######...............",
-      "........############..................##################......##............",
-      ".........###########...........................#############....##..........",
-      "..........##########............................############....####........",
-      "...........########.............................###########.....######.......",
-      "............#######..............................#########.......#####......",
-      ".............######...............................########........####......",
-      "..............#####................................#######........###.......",
-      "...............####.................................######........##........",
-      "................###..................................#####..................",
-      ".................##...................................####..................",
-      "..................#....................................###..................",
-      "...............................................................##...........",
-      "..........................................................########..........",
-      ".........................................................##########.........",
-      "........................................................############........",
-      ".......................................................##############.......",
-      "......................................................################......",
-      ".....................................................##################.....",
-      "..............................................................................",
-      "..............................................................................",
-    ];
-    const texWidth = worldMap[0].length;   // columns = longitude samples
-    const texHeight = worldMap.length;     // rows = latitude samples
+</div>
 
-    // ---------- 2. Output grid geometry ----------
-    // R = sphere radius measured in "row units". Monospace characters are
-    // roughly twice as tall as they are wide, so we stretch the horizontal
-    // axis by `aspect` to make the projected sphere actually look round.
-    const R = 16;
-    const aspect = 2.15;
-    const rowHalf = R;
-    const colHalf = Math.round(R * aspect);
-    const H = rowHalf * 2 + 1;
-    const W = colHalf * 2 + 1;
 
-    // Shading ramp for land, from facing-the-viewer (bright) to grazing-the-rim (dim)
-    const landRamp = ["#", "%", "+", ":", "."];
-    const oceanChar = ".";
-
-    // ---------- 3. Static starfield behind/around the sphere (built once) ----------
-    const background = [];
-    for (let i = 0; i < H; i++) {
-      let rowStars = "";
-      for (let j = 0; j < W; j++) {
-        rowStars += Math.random() < 0.03 ? "." : " ";
-      }
-      background.push(rowStars);
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
     }
+}
+</script>
 
-    // ---------- 4. Build one frame of the rotating globe ----------
-    function buildFrame(theta) {
-      const cosT = Math.cos(theta);
-      const sinT = Math.sin(theta);
-      const rows = [];
 
-      for (let i = 0; i < H; i++) {
-        const ny = (rowHalf - i) / rowHalf; // +1 at top (north pole) .. -1 at bottom
-        let line = "";
+<script type="module">
 
-        for (let j = 0; j < W; j++) {
-          const nx = (j - colHalf) / colHalf; // -1 .. +1 across the sphere's width
-          const d2 = nx * nx + ny * ny;
+import * as THREE from "three";
 
-          if (d2 > 1) {
-            // Outside the sphere: show the starfield
-            line += background[i][j];
-            continue;
-          }
+import { OrbitControls } from
+"three/addons/controls/OrbitControls.js";
 
-          // Front-facing sphere point as seen by the viewer
-          const nz = Math.sqrt(1 - d2);
 
-          // Un-rotate this viewed point to find where it originally sits on
-          // the texture, i.e. "undo" the current spin angle.
-          const xOrig = nx * cosT + nz * sinT;
-          const zOrig = -nx * sinT + nz * cosT;
-          const yOrig = ny;
+// 1. CREATE SCENE
 
-          // Convert 3D sphere coords -> latitude/longitude -> texture indices
-          const lat = Math.asin(Math.max(-1, Math.min(1, yOrig)));      // -pi/2 .. pi/2
-          const lon = Math.atan2(xOrig, zOrig);                        // -pi .. pi
+const scene = new THREE.Scene();
 
-          let row = Math.floor((1 - (lat + Math.PI / 2) / Math.PI) * texHeight);
-          let col = Math.floor(((lon + Math.PI) / (2 * Math.PI)) * texWidth);
-          row = Math.max(0, Math.min(texHeight - 1, row));
-          col = Math.max(0, Math.min(texWidth - 1, col));
+scene.background = new THREE.Color(0x020713);
 
-          const isLand = worldMap[row][col] === "#";
 
-          if (isLand) {
-            // Pick a shading character based on how much this point faces us
-            let shade;
-            if (nz > 0.85) shade = 0;
-            else if (nz > 0.65) shade = 1;
-            else if (nz > 0.45) shade = 2;
-            else if (nz > 0.25) shade = 3;
-            else shade = 4;
-            line += landRamp[shade];
-          } else {
-            line += nz > 0.15 ? oceanChar : " "; // fade ocean out right at the rim
-          }
+// 2. CREATE CAMERA
+
+const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+
+camera.position.set(0, 0, 6);
+
+
+// 3. CREATE RENDERER
+
+const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true
+});
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+renderer.toneMappingExposure = 1.2;
+
+document.getElementById("container").appendChild(
+    renderer.domElement
+);
+
+
+// 4. CREATE LIGHTING
+
+const ambientLight = new THREE.AmbientLight(
+    0xffffff,
+    1.5
+);
+
+scene.add(ambientLight);
+
+
+const sunlight = new THREE.DirectionalLight(
+    0xffffff,
+    3
+);
+
+sunlight.position.set(5, 3, 5);
+
+scene.add(sunlight);
+
+
+// 5. LOAD EARTH TEXTURES
+
+const loader = new THREE.TextureLoader();
+
+const earthTexture = loader.load(
+    "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg"
+);
+
+const normalTexture = loader.load(
+    "https://threejs.org/examples/textures/planets/earth_normal_2048.jpg"
+);
+
+const specularTexture = loader.load(
+    "https://threejs.org/examples/textures/planets/earth_specular_2048.jpg"
+);
+
+const cloudTexture = loader.load(
+    "https://threejs.org/examples/textures/planets/earth_clouds_1024.png"
+);
+
+
+// 6. CREATE EARTH
+
+const earthGeometry = new THREE.SphereGeometry(
+    2,
+    96,
+    96
+);
+
+const earthMaterial = new THREE.MeshPhongMaterial({
+    map: earthTexture,
+    normalMap: normalTexture,
+    specularMap: specularTexture,
+    shininess: 15
+});
+
+const earth = new THREE.Mesh(
+    earthGeometry,
+    earthMaterial
+);
+
+scene.add(earth);
+
+
+// 7. CREATE CLOUD LAYER
+
+const cloudGeometry = new THREE.SphereGeometry(
+    2.015,
+    96,
+    96
+);
+
+const cloudMaterial = new THREE.MeshPhongMaterial({
+    map: cloudTexture,
+    transparent: true,
+    opacity: 0.35,
+    depthWrite: false
+});
+
+const clouds = new THREE.Mesh(
+    cloudGeometry,
+    cloudMaterial
+);
+
+scene.add(clouds);
+
+
+// 8. CREATE BLUE ATMOSPHERE
+
+const atmosphereGeometry = new THREE.SphereGeometry(
+    2.12,
+    64,
+    64
+);
+
+const atmosphereMaterial = new THREE.ShaderMaterial({
+
+    vertexShader: `
+        varying vec3 vNormal;
+
+        void main() {
+
+            vNormal = normalize(normalMatrix * normal);
+
+            gl_Position = projectionMatrix *
+                modelViewMatrix *
+                vec4(position, 1.0);
         }
-        rows.push(line);
-      }
-      return rows.join("\n");
+    `,
+
+    fragmentShader: `
+        varying vec3 vNormal;
+
+        void main() {
+
+            float intensity = pow(
+                0.75 - dot(vNormal, vec3(0.0, 0.0, 1.0)),
+                3.0
+            );
+
+            gl_FragColor = vec4(
+                0.05,
+                0.45,
+                1.0,
+                intensity
+            );
+        }
+    `,
+
+    blending: THREE.AdditiveBlending,
+
+    side: THREE.BackSide,
+
+    transparent: true
+});
+
+const atmosphere = new THREE.Mesh(
+    atmosphereGeometry,
+    atmosphereMaterial
+);
+
+scene.add(atmosphere);
+
+
+// 9. CREATE STAR FIELD
+
+const starGeometry = new THREE.BufferGeometry();
+
+const starCount = 4000;
+
+const starPositions = [];
+
+for (let i = 0; i < starCount; i++) {
+
+    const x = (Math.random() - 0.5) * 200;
+
+    const y = (Math.random() - 0.5) * 200;
+
+    const z = (Math.random() - 0.5) * 200;
+
+    starPositions.push(x, y, z);
+
+}
+
+starGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+        starPositions,
+        3
+    )
+);
+
+const starMaterial = new THREE.PointsMaterial({
+    color: 0x8bcfff,
+    size: 0.12,
+    transparent: true,
+    opacity: 0.8
+});
+
+const stars = new THREE.Points(
+    starGeometry,
+    starMaterial
+);
+
+scene.add(stars);
+
+
+// 10. ORBIT CONTROLS
+
+const controls = new OrbitControls(
+    camera,
+    renderer.domElement
+);
+
+controls.enableDamping = true;
+
+controls.dampingFactor = 0.05;
+
+controls.enableZoom = true;
+
+controls.minDistance = 3.5;
+
+controls.maxDistance = 10;
+
+controls.autoRotate = true;
+
+controls.autoRotateSpeed = 0.7;
+
+
+// 11. SET INITIAL EARTH VIEW
+
+earth.rotation.y = -0.35;
+
+clouds.rotation.y = -0.35;
+
+
+// 12. PAUSE AND RESUME
+
+const pauseBtn = document.getElementById("pauseBtn");
+
+pauseBtn.addEventListener("click", () => {
+
+    controls.autoRotate = !controls.autoRotate;
+
+    pauseBtn.textContent = controls.autoRotate
+        ? "Pause Rotation"
+        : "Resume Rotation";
+
+});
+
+
+// 13. RESET VIEW
+
+document.getElementById("resetBtn").addEventListener(
+    "click",
+    () => {
+
+        camera.position.set(0, 0, 6);
+
+        earth.rotation.set(0, -0.35, 0);
+
+        clouds.rotation.set(0, -0.35, 0);
+
+        controls.target.set(0, 0, 0);
+
+        controls.update();
+
     }
+);
 
-    // ---------- 5. Animation loop (throttled, pausable) ----------
-    const globeElement = document.getElementById("globe");
-    const toggleButton = document.getElementById("toggleBtn");
 
-    let theta = 0;
-    const thetaStep = 0.07; // radians per frame
-    let isSpinning = true;
+// 14. ANIMATION LOOP
 
-    let lastFrameTime = 0;
-    const frameDelay = 90; // ms between frames
+function animate() {
 
-    function animate() {
-      if (isSpinning) {
-        globeElement.textContent = buildFrame(theta);
-        theta += thetaStep;
-        if (theta > Math.PI * 2) theta -= Math.PI * 2;
-      }
-      requestAnimationFrame(loopWithDelay);
-    }
+    requestAnimationFrame(animate);
 
-    function loopWithDelay(currentTime) {
-      if (currentTime - lastFrameTime >= frameDelay) {
-        lastFrameTime = currentTime;
-        animate();
-      } else {
-        requestAnimationFrame(loopWithDelay);
-      }
-    }
+    // Slowly rotate the cloud layer
+    clouds.rotation.y += 0.0003;
 
-    toggleButton.addEventListener("click", function () {
-      isSpinning = !isSpinning;
-      toggleButton.textContent = isSpinning ? "Pause" : "Resume";
-    });
+    // Update camera controls
+    controls.update();
 
-    globeElement.textContent = buildFrame(theta);
-    requestAnimationFrame(loopWithDelay);
-  </script>
+    // Render the 3D scene
+    renderer.render(scene, camera);
+
+}
+
+animate();
+
+
+// 15. RESPONSIVE SCREEN
+
+window.addEventListener("resize", () => {
+
+    camera.aspect =
+        window.innerWidth / window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, 2)
+    );
+
+});
+
+</script>
 
 </body>
 </html>
