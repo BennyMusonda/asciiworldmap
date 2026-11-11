@@ -1,233 +1,769 @@
+?variant="standard" id="62841" title="3D ASCII Earth — Complete HTML, CSS and JavaScript"}
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASCII World Explorer</title>
-    <style>
-        :root {
-            --bg-color: #0d1117;
-            --text-color: #c9d1d9;
-            --ui-bg: #161b22;
-            --ui-border: #30363d;
-            --accent: #58a6ff;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D ASCII Earth</title>
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-            box-sizing: border-box;
-            user-select: none;
-        }
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        h1 {
-            margin: 0 0 5px 0;
-            font-size: 1.5rem;
-            color: var(--accent);
-            text-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
-        }
+body {
+    min-height: 100vh;
+    background: radial-gradient(circle, #102638, #030912 75%);
+    color: #dfffea;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
 
-        .seed-display {
-            font-size: 0.75rem;
-            color: #8b949e;
-            margin-bottom: 15px;
-            word-break: break-all;
-            text-align: center;
-            max-width: 600px;
-        }
+.container {
+    width: 100%;
+    max-width: 1100px;
+    text-align: center;
+}
 
-        #world-container {
-            background-color: #000;
-            border: 2px solid var(--ui-border);
-            border-radius: 6px;
-            padding: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            overflow: auto;
-        }
+h1 {
+    font-size: clamp(22px, 4vw, 38px);
+    font-weight: 400;
+    letter-spacing: 7px;
+    margin-bottom: 10px;
+}
 
-        #world-map {
-            margin: 0;
-            white-space: pre;
-            line-height: 1.15;
-            font-size: 14px;
-            letter-spacing: 1px;
-        }
+.subtitle {
+    color: #7899ad;
+    font-size: 13px;
+    margin-bottom: 25px;
+}
 
-        .controls {
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            background: var(--ui-bg);
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid var(--ui-border);
-        }
+.globe-container {
+    width: 100%;
+    min-height: 480px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(120, 190, 220, 0.2);
+    border-radius: 18px;
+    background: radial-gradient(circle, #102c40, #030a12 70%);
+    box-shadow: 0 0 60px rgba(55, 170, 200, 0.08);
+}
 
-        .btn-row {
-            display: flex;
-            gap: 5px;
-        }
+#globe {
+    white-space: pre;
+    font-family: "Courier New", monospace;
+    font-size: clamp(7px, 1.15vw, 11px);
+    line-height: 1;
+    color: #a5f5c3;
+    text-shadow: 0 0 7px rgba(100, 255, 160, 0.5);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+}
 
-        button {
-            background-color: #21262d;
-            color: var(--text-color);
-            border: 1px solid var(--ui-border);
-            padding: 8px 16px;
-            font-family: inherit;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.1s ease;
-        }
+#globe:active {
+    cursor: grabbing;
+}
 
-        button:hover {
-            background-color: #30363d;
-            border-color: #8b949e;
-        }
+.controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
-        button:active {
-            background-color: var(--accent);
-            color: #000;
-        }
+button, select {
+    padding: 10px 17px;
+    background: #102638;
+    border: 1px solid #31566a;
+    color: #dfffea;
+    border-radius: 7px;
+    cursor: pointer;
+}
 
-        .instructions {
-            margin-top: 10px;
-            font-size: 0.8rem;
-            color: #8b949e;
-        }
-    </style>
+button:hover, select:hover {
+    border-color: #73d7c5;
+}
+
+.speed {
+    color: #8ca9b9;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+input {
+    accent-color: #73d7c5;
+}
+
+.information {
+    display: flex;
+    justify-content: center;
+    gap: 35px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.info-item span {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #7899ad;
+}
+
+.info-item strong {
+    font-size: 14px;
+    font-weight: 400;
+}
+
+footer {
+    margin-top: 25px;
+    color: #587789;
+    font-size: 12px;
+}
+
+@media(max-width: 600px) {
+    .globe-container {
+        min-height: 350px;
+    }
+
+    h1 {
+        letter-spacing: 4px;
+    }
+
+    .information {
+        gap: 18px;
+    }
+}
+</style>
 </head>
+
 <body>
 
-    <h1>ASCII WORLD ENGINE</h1>
-    <div class="seed-display">Hash Seed: 2caf1d820af51a92dfc24a5d8604ab2e72ab7897</div>
+<div class="container">
 
-    <div id="world-container">
-        <pre id="world-map">Generating map...</pre>
+    <h1>EARTH IN MOTION</h1>
+
+    <p class="subtitle">
+        REAL WORLD GEOGRAPHY · 3D ASCII PROJECTION
+    </p>
+
+    <div class="globe-container">
+        <pre id="globe">Loading geographical data...</pre>
     </div>
 
     <div class="controls">
-        <div class="btn-row">
-            <button onclick="move(0, -1)">▲ UP</button>
-        </div>
-        <div class="btn-row">
-            <button onclick="move(-1, 0)">◀ LEFT</button>
-            <button onclick="move(0, 0)">⟲ RESET</button>
-            <button onclick="move(1, 0)">RIGHT ▶</button>
-        </div>
-        <div class="btn-row">
-            <button onclick="move(0, 1)">▼ DOWN</button>
-        </div>
-        <div class="instructions">Use WASD, Arrow Keys, or On-Screen buttons to traverse.</div>
+
+        <button id="pause">Pause</button>
+
+        <button id="reverse">Reverse</button>
+
+        <button id="reset">Reset</button>
+
+        <label class="speed">
+            Speed
+            <input type="range" id="speed"
+                   min="1" max="10" value="4">
+            <span id="speedValue">4</span>
+        </label>
+
+        <select id="style">
+            <option value="soft">Soft ASCII</option>
+            <option value="classic">Classic ASCII</option>
+            <option value="dense">Dense ASCII</option>
+        </select>
+
     </div>
 
-    <script>
-        // Constants for map layout
-        const WIDTH = 80;
-        const HEIGHT = 35;
-        
-        // Initial coordinates
-        let camX = 1000;
-        let camY = 1000;
+    <div class="information">
 
-        // Hash-based custom pseudo-random number generator
-        const seedString = "2caf1d820af51a92dfc24a5d8604ab2e72ab7897";
-        function getSeedValue(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        <div class="info-item">
+            <span>ROTATION</span>
+            <strong id="angle">000°</strong>
+        </div>
+
+        <div class="info-item">
+            <span>STATUS</span>
+            <strong id="status">Loading</strong>
+        </div>
+
+        <div class="info-item">
+            <span>GEOGRAPHY</span>
+            <strong>Natural Earth</strong>
+        </div>
+
+    </div>
+
+    <footer>
+        DRAG THE EARTH TO ROTATE · EXPLORE THE WORLD
+    </footer>
+
+</div>
+
+
+<script>
+
+// ========================================
+// 1. GEOGRAPHICAL DATA
+// ========================================
+
+const GEOJSON_URL =
+"https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
+
+const globe = document.getElementById("globe");
+
+const canvas = document.createElement("canvas");
+
+canvas.width = 1440;
+canvas.height = 720;
+
+const ctx = canvas.getContext("2d", {
+    willReadFrequently: true
+});
+
+let mapPixels = null;
+
+
+// ========================================
+// 2. GLOBE SETTINGS
+// ========================================
+
+const radius = 19;
+
+const rows = radius * 2 + 1;
+
+const cols = 83;
+
+const horizontalRadius = (cols - 1) / 2;
+
+let angle = -0.45;
+
+let direction = 1;
+
+let running = true;
+
+let dragging = false;
+
+let previousX = 0;
+
+let speed = 4;
+
+let lastFrame = 0;
+
+const ramps = {
+
+    soft: ["█", "▓", "▒", "░", "·"],
+
+    classic: ["#", "%", "+", ":", "."],
+
+    dense: ["@", "#", "W", "=", "-"]
+
+};
+
+
+// ========================================
+// 3. STAR BACKGROUND
+// ========================================
+
+const stars = Array.from(
+    { length: rows },
+    () => Array.from(
+        { length: cols },
+        () => Math.random() > 0.975 ? "." : " "
+    )
+);
+
+
+// ========================================
+// 4. DRAW GEOGRAPHICAL DATA
+// ========================================
+
+function drawRing(ring, color) {
+
+    if (!ring || ring.length < 3) return;
+
+    ctx.beginPath();
+
+    let penDown = false;
+
+    let previousLongitude = null;
+
+    for (const point of ring) {
+
+        const longitude = point[0];
+
+        const latitude = point[1];
+
+        const x =
+            ((longitude + 180) / 360) * canvas.width;
+
+        const y =
+            ((90 - latitude) / 180) * canvas.height;
+
+        // Prevent lines crossing the entire map
+        // at the international date line.
+
+        if (
+            previousLongitude !== null &&
+            Math.abs(longitude - previousLongitude) > 180
+        ) {
+
+            ctx.fill();
+
+            ctx.beginPath();
+
+            penDown = false;
+
+        }
+
+        if (!penDown) {
+
+            ctx.moveTo(x, y);
+
+            penDown = true;
+
+        } else {
+
+            ctx.lineTo(x, y);
+
+        }
+
+        previousLongitude = longitude;
+
+    }
+
+    ctx.closePath();
+
+    ctx.fillStyle = color;
+
+    ctx.fill();
+}
+
+
+function drawPolygon(polygon) {
+
+    if (!polygon.length) return;
+
+    // Draw the main land area.
+
+    drawRing(polygon[0], "#ffffff");
+
+    // Remove holes, such as lakes.
+
+    for (let i = 1; i < polygon.length; i++) {
+
+        drawRing(polygon[i], "#000000");
+
+    }
+
+}
+
+
+function buildWorldMap(data) {
+
+    ctx.fillStyle = "#000000";
+
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (const feature of data.features) {
+
+        const geometry = feature.geometry;
+
+        if (!geometry) continue;
+
+        if (geometry.type === "Polygon") {
+
+            drawPolygon(geometry.coordinates);
+
+        }
+
+        if (geometry.type === "MultiPolygon") {
+
+            for (const polygon of geometry.coordinates) {
+
+                drawPolygon(polygon);
+
             }
-            return Math.abs(hash);
-        }
-        const baseSeed = getSeedValue(seedString);
 
-        // Deterministic noise function for procedural generation
-        function noise(x, y) {
-            let n = Math.sin(x * 12.9898 + y * 78.233 + baseSeed) * 43758.5453123;
-            return n - Math.floor(n);
         }
 
-        // Smooth noise over adjacent tiles to simulate natural landscape structures
-        function smoothNoise(x, y) {
-            let corners = (noise(x-1, y-1) + noise(x+1, y-1) + noise(x-1, y+1) + noise(x+1, y+1)) / 16;
-            let sides   = (noise(x-1, y) + noise(x+1, y) + noise(x, y-1) + noise(x, y+1)) / 8;
-            let center  = noise(x, y) / 4;
-            return corners + sides + center;
-        }
+    }
 
-        // Map raw noise value into distinct ASCII environment tiles
-        function getTile(x, y) {
-            // Absolute Center Landmark
-            if (x === 1040 && y === 1017) return "[C]";
-            if (x === 1041 && y === 1017) return "[P]";
-            if (x === 1042 && y === 1017) return "[U]";
-            
-            // Landscape Generation
-            let val = smoothNoise(x, y);
+    // Save the map pixels for fast globe rendering.
 
-            if (val < 0.38) return "~"; // Deep Ocean
-            if (val < 0.44) return "-"; // Shallows / Shoreline
-            if (val < 0.65) return "."; // Rolling Plains
-            if (val < 0.80) return "'"; // Whispering Forests
-            if (val < 0.92) return "#"; // High Peaks
-            return "^";                 // Volcanic Spires
-        }
+    mapPixels = ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    ).data;
 
-        // Render the screen block
-        function renderMap() {
-            let mapStr = "";
-            for (let y = 0; y < HEIGHT; y++) {
-                let row = "";
-                for (let x = 0; x < WIDTH; x++) {
-                    const worldX = camX + x;
-                    const worldY = camY + y;
-                    
-                    // Render player indicator dynamically over map data at center screen
-                    if (x === Math.floor(WIDTH / 2) && y === Math.floor(HEIGHT / 2)) {
-                        row += "@";
-                    } else {
-                        row += getTile(worldX, worldY);
-                    }
-                }
-                mapStr += row + "\n";
+}
+
+
+// ========================================
+// 5. CHECK WHETHER A POINT IS LAND
+// ========================================
+
+function isLand(longitude, latitude) {
+
+    const lon =
+        ((longitude + 180) % 360 + 360) % 360 - 180;
+
+    const x = Math.floor(
+        ((lon + 180) / 360) * canvas.width
+    );
+
+    const y = Math.floor(
+        ((90 - latitude) / 180) * canvas.height
+    );
+
+    const index =
+        (y * canvas.width + x) * 4;
+
+    return mapPixels[index] > 100;
+
+}
+
+
+// ========================================
+// 6. RENDER THE 3D ASCII EARTH
+// ========================================
+
+function renderGlobe() {
+
+    if (!mapPixels) return;
+
+    const ramp = ramps[
+        document.getElementById("style").value
+    ];
+
+    const output = [];
+
+    const cosA = Math.cos(angle);
+
+    const sinA = Math.sin(angle);
+
+    for (let row = 0; row < rows; row++) {
+
+        const y = (radius - row) / radius;
+
+        let line = "";
+
+        for (let col = 0; col < cols; col++) {
+
+            const x =
+                (col - horizontalRadius) /
+                horizontalRadius;
+
+            const distanceSquared =
+                x * x + y * y;
+
+            // Outside the sphere.
+
+            if (distanceSquared > 1) {
+
+                line += stars[row][col];
+
+                continue;
+
             }
-            document.getElementById("world-map").textContent = mapStr;
-        }
 
-        // Camera control interface 
-        function move(dx, dy) {
-            if (dx === 0 && dy === 0) {
-                camX = 1000;
-                camY = 1000;
+            // Calculate the visible 3D surface.
+
+            const z = Math.sqrt(
+                1 - distanceSquared
+            );
+
+            // Rotate the sphere.
+
+            const mapX =
+                x * cosA + z * sinA;
+
+            const mapZ =
+                -x * sinA + z * cosA;
+
+            // Convert the 3D point to latitude/longitude.
+
+            const latitude =
+                Math.asin(
+                    Math.max(-1, Math.min(1, y))
+                ) * 180 / Math.PI;
+
+            const longitude =
+                Math.atan2(mapX, mapZ) *
+                180 / Math.PI;
+
+            // Check actual geographical land.
+
+            if (isLand(longitude, latitude)) {
+
+                let shade;
+
+                if (z > 0.86) shade = 0;
+
+                else if (z > 0.68) shade = 1;
+
+                else if (z > 0.47) shade = 2;
+
+                else if (z > 0.25) shade = 3;
+
+                else shade = 4;
+
+                line += ramp[shade];
+
             } else {
-                camX += dx * 2;
-                camY += dy * 2;
+
+                line +=
+                    z > 0.2 &&
+                    (row * 17 + col * 11) % 37 === 0
+                    ? "·"
+                    : " ";
+
             }
-            renderMap();
+
         }
 
-        // Keyboard bindings
-        window.addEventListener("keydown", (e) => {
-            switch(e.key.toLowerCase()) {
-                case "w": case "arrowup":    move(0, -1); break;
-                case "s": case "arrowdown":  move(0, 1);  break;
-                case "a": case "arrowleft":  move(-1, 0); break;
-                case "d": case "arrowright": move(1, 0);  break;
-            }
-        });
+        output.push(line);
 
-        // Initialize display
-        renderMap();
-    </script>
+    }
+
+    globe.textContent = output.join("\n");
+
+    let degrees = Math.round(
+        angle * 180 / Math.PI
+    );
+
+    degrees = (degrees % 360 + 360) % 360;
+
+    document.getElementById("angle").textContent =
+        String(degrees).padStart(3, "0") + "°";
+
+}
+
+
+// ========================================
+// 7. LOAD THE WORLD MAP
+// ========================================
+
+async function loadWorldMap() {
+
+    try {
+
+        const response = await fetch(GEOJSON_URL);
+
+        if (!response.ok) {
+
+            throw new Error("Could not retrieve map data.");
+
+        }
+
+        const data = await response.json();
+
+        buildWorldMap(data);
+
+        document.getElementById("status").textContent =
+            "Running";
+
+        renderGlobe();
+
+    } catch (error) {
+
+        console.error(error);
+
+        globe.textContent =
+            "Unable to load geographical data.\n\nCheck your internet connection\nand reload the page.";
+
+        document.getElementById("status").textContent =
+            "Map unavailable";
+
+    }
+
+}
+
+
+// ========================================
+// 8. ANIMATION
+// ========================================
+
+function animate(time) {
+
+    if (time - lastFrame > 65) {
+
+        lastFrame = time;
+
+        if (running && !dragging && mapPixels) {
+
+            angle += direction * speed * 0.00085;
+
+            if (angle > Math.PI * 2) {
+
+                angle -= Math.PI * 2;
+
+            }
+
+            if (angle < 0) {
+
+                angle += Math.PI * 2;
+
+            }
+
+        }
+
+        renderGlobe();
+
+    }
+
+    requestAnimationFrame(animate);
+
+}
+
+
+// ========================================
+// 9. PAUSE AND RESUME
+// ========================================
+
+document.getElementById("pause").onclick =
+function () {
+
+    running = !running;
+
+    this.textContent = running ? "Pause" : "Resume";
+
+    document.getElementById("status").textContent =
+        running ? "Running" : "Paused";
+
+};
+
+
+// ========================================
+// 10. REVERSE ROTATION
+// ========================================
+
+document.getElementById("reverse").onclick =
+function () {
+
+    direction *= -1;
+
+};
+
+
+// ========================================
+// 11. RESET GLOBE
+// ========================================
+
+document.getElementById("reset").onclick =
+function () {
+
+    angle = -0.45;
+
+    direction = 1;
+
+    renderGlobe();
+
+};
+
+
+// ========================================
+// 12. ROTATION SPEED
+// ========================================
+
+document.getElementById("speed").oninput =
+function () {
+
+    speed = Number(this.value);
+
+    document.getElementById("speedValue").textContent =
+        speed;
+
+};
+
+
+// ========================================
+// 13. ASCII CHARACTER STYLE
+// ========================================
+
+document.getElementById("style").onchange =
+function () {
+
+    renderGlobe();
+
+};
+
+
+// ========================================
+// 14. MOUSE AND TOUCH INTERACTION
+// ========================================
+
+globe.addEventListener("pointerdown", function(event) {
+
+    if (!mapPixels) return;
+
+    dragging = true;
+
+    previousX = event.clientX;
+
+    globe.setPointerCapture(event.pointerId);
+
+});
+
+
+globe.addEventListener("pointermove", function(event) {
+
+    if (!dragging) return;
+
+    const movement =
+        event.clientX - previousX;
+
+    angle += movement * 0.012;
+
+    previousX = event.clientX;
+
+    renderGlobe();
+
+});
+
+
+function stopDragging() {
+
+    dragging = false;
+
+}
+
+globe.addEventListener("pointerup", stopDragging);
+
+globe.addEventListener("pointercancel", stopDragging);
+
+globe.addEventListener("lostpointercapture", stopDragging);
+
+
+// ========================================
+// 15. START THE EXPERIENCE
+// ========================================
+
+loadWorldMap();
+
+requestAnimationFrame(animate);
+
+</script>
+
 </body>
 </html>
+```
